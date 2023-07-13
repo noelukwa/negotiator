@@ -19,9 +19,11 @@ func TestNegotiator_ParseMediaTypes(t *testing.T) {
 			expected: []string{"*/*"},
 		},
 		{
-			name:     "should return */*",
-			header:   "*/*",
-			expected: []string{"*/*"},
+			name:   "should return text/*",
+			header: "text/*, text/plain;q=0",
+			expected: []string{
+				"text/*",
+			},
 		},
 		{
 			name:   "should return application/json",
@@ -43,10 +45,11 @@ func TestNegotiator_ParseMediaTypes(t *testing.T) {
 			expected: []string{},
 		},
 		{
-			name:   "should return text/html",
+			name:   "should return text/html, application/json",
 			header: "application/json;q=0.2, text/html",
 			expected: []string{
 				"text/html",
+				"application/json",
 			},
 		},
 		{
@@ -57,17 +60,31 @@ func TestNegotiator_ParseMediaTypes(t *testing.T) {
 			},
 		},
 		{
-			name:   "should return text/plain",
+			name:   "should return text/plain, text/html, application/json, */*",
 			header: "text/plain, application/json;q=0.5, text/html, */*;q=0.1",
 			expected: []string{
 				"text/plain",
+				"text/html",
+				"application/json",
+				"*/*",
 			},
 		},
 		{
-			name:   "should return text/plain",
+			name:   "should return preferred in order",
 			header: "text/plain, application/json;q=0.5, text/html, text/xml, text/yaml, text/javascript, text/csv, text/css, text/rtf, text/markdown, application/octet-stream;q=0.2, */*;q=0.1",
 			expected: []string{
 				"text/plain",
+				"text/html",
+				"text/xml",
+				"text/yaml",
+				"text/javascript",
+				"text/csv",
+				"text/css",
+				"text/rtf",
+				"text/markdown",
+				"application/json",
+				"application/octet-stream",
+				"*/*",
 			},
 		},
 	}
@@ -80,8 +97,10 @@ func TestNegotiator_ParseMediaTypes(t *testing.T) {
 			neg := negotiator.New(req)
 			actual := neg.ParseMediaTypes()
 			if len(c.expected) >= 1 {
-				if actual[0] != c.expected[0] {
-					t.Errorf("Expected %s media types, got %s", c.expected[0], actual[0])
+				for i, v := range actual {
+					if v != c.expected[i] {
+						t.Errorf("Expected %s media type, got %s", c.expected[i], v)
+					}
 				}
 			} else {
 				if len(actual) != len(c.expected) {
