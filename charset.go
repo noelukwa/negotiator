@@ -17,6 +17,10 @@ type Charset struct {
 func (n *Negotiator) ParseCharsets(available ...string) []string {
 	acceptCharset := n.req.Header.Get("Accept-Charset")
 
+	if acceptCharset == "" || len(available) == 0 {
+		return []string{}
+	}
+
 	parsedCharsets := splitCharsets(acceptCharset)
 	preferredCharsets := make([]Charset, 0)
 
