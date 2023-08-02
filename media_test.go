@@ -8,10 +8,11 @@ import (
 
 func TestNegotiator_ParseMediaTypes(t *testing.T) {
 
-	casesWithoutArgs := []struct {
-		name     string
-		header   string
-		expected []string
+	cases := []struct {
+		name      string
+		header    string
+		available []string
+		expected  []string
 	}{
 		{
 			name:     "should return */*",
@@ -89,7 +90,7 @@ func TestNegotiator_ParseMediaTypes(t *testing.T) {
 		},
 	}
 
-	for _, c := range casesWithoutArgs {
+	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			req := httptest.NewRequest("GET", "/", nil)
 			req.Header.Set("Accept", c.header)

@@ -1,6 +1,7 @@
 package negotiator
 
 import (
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -17,20 +18,23 @@ type Charset struct {
 func (n *Negotiator) ParseCharsets(available ...string) []string {
 	acceptCharset := n.req.Header.Get("Accept-Charset")
 
-	if acceptCharset == "" || len(available) == 0 {
-		return []string{}
+	fmt.Println("acceptCharset:", acceptCharset)
+	if acceptCharset == "" || len(available) == 0 || acceptCharset == "*" {
+		return available
 	}
 
 	parsedCharsets := splitCharsets(acceptCharset)
 	preferredCharsets := make([]Charset, 0)
-
+	fmt.Println("parsedCharsets:", parsedCharsets)
 	for _, charset := range parsedCharsets {
+
 		if idx, ok := isCharsetAccepted(charset, available); ok {
 			charset.Name = available[idx]
 			preferredCharsets = append(preferredCharsets, charset)
 		}
 	}
 
+	fmt.Println("preferredCharsets:", preferredCharsets)
 	sortCharsetsByPriority(preferredCharsets)
 
 	return getCharsets(preferredCharsets)
@@ -89,6 +93,7 @@ func isCharsetAccepted(charset Charset, available []string) (int, bool) {
 	}
 
 	for i, a := range available {
+		fmt.Printf("a: %s, charset.Name: %s\n", a, charset.Name)
 		if strings.EqualFold(a, charset.Name) {
 			return i, true
 		}
@@ -100,10 +105,8 @@ func isCharsetAccepted(charset Charset, available []string) (int, bool) {
 // sortCharsetsByPriority sorts the charsets by their priority (quality value).
 func sortCharsetsByPriority(charsets []Charset) {
 	sort.SliceStable(charsets, func(i, j int) bool {
-		if charsets[i].Quality != charsets[j].Quality {
-			return charsets[i].Quality > charsets[j].Quality
-		}
-		return charsets[i].Name < charsets[j].Name
+		return charsets[i].Quality > charsets[j].Quality
+
 	})
 }
 
