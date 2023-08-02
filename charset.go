@@ -25,7 +25,8 @@ func (n *Negotiator) ParseCharsets(available ...string) []string {
 	preferredCharsets := make([]Charset, 0)
 
 	for _, charset := range parsedCharsets {
-		if isCharsetAccepted(charset, available) {
+		if idx, ok := isCharsetAccepted(charset, available); ok {
+			charset.Name = available[idx]
 			preferredCharsets = append(preferredCharsets, charset)
 		}
 	}
@@ -82,18 +83,18 @@ func parseCharset(charsetStr string) *Charset {
 }
 
 // isCharsetAccepted checks if a charset is accepted by the client.
-func isCharsetAccepted(charset Charset, available []string) bool {
+func isCharsetAccepted(charset Charset, available []string) (int, bool) {
 	if len(available) == 0 {
-		return true
+		return -1, true
 	}
 
-	for _, a := range available {
+	for i, a := range available {
 		if strings.EqualFold(a, charset.Name) {
-			return true
+			return i, true
 		}
 	}
 
-	return false
+	return -1, false
 }
 
 // sortCharsetsByPriority sorts the charsets by their priority (quality value).
