@@ -1,7 +1,6 @@
 package negotiator
 
 import (
-	"net/http"
 	"sort"
 	"strconv"
 	"strings"
@@ -12,14 +11,6 @@ type MediaType struct {
 	Subtype    string
 	Quality    float64
 	Parameters map[string]string
-}
-
-type Negotiator struct {
-	req *http.Request
-}
-
-func New(req *http.Request) *Negotiator {
-	return &Negotiator{req: req}
 }
 
 // ParseMediaTypes parses the Accept header and returns a list of media types

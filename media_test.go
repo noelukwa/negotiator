@@ -20,6 +20,15 @@ func TestNegotiator_ParseMediaTypes(t *testing.T) {
 			expected: []string{"*/*"},
 		},
 		{
+			name:   "should return */*",
+			header: "text;plain",
+			expected: []string{
+				"shit",
+				"shito",
+				"shiti",
+			},
+		},
+		{
 			name:   "should return text/*",
 			header: "text/*, text/plain;q=0",
 			expected: []string{
