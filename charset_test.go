@@ -8,115 +8,168 @@ import (
 
 func TestNegotiator_ParseCharsets(t *testing.T) {
 
-	casesWithArray := []struct {
-		name     string
-		header   string
-		charsets []string
-		expected []string
+	tests := []struct {
+		name          string
+		acceptCharset string
+		expected      []string
+		available     []string
 	}{
 		{
-			name:     "should return empty list",
-			header:   "",
-			charsets: []string{},
-			expected: []string{},
+			"should return *",
+			"",
+			[]string{"*"},
+			nil,
 		},
 		{
-			name:     "should return original list",
-			header:   "",
-			charsets: []string{"UTF-8", "ISO-8859-1"},
-			expected: []string{"UTF-8", "ISO-8859-1"},
+			"should return *",
+			"*",
+			[]string{"*"},
+			nil,
 		},
 		{
-			name:     "should return empty list for wildcard",
-			header:   "*",
-			charsets: []string{},
-			expected: []string{},
-		},
-
-		{
-			name:     "should return original list",
-			header:   "*",
-			charsets: []string{"UTF-8", "ISO-8859-1"},
-			expected: []string{"UTF-8", "ISO-8859-1"},
+			"should return client-preferred charsets",
+			"*, UTF-8",
+			[]string{"*", "UTF-8"},
+			nil,
 		},
 		{
-			name:     "should return matching charsets",
-			header:   "*, UTF-8",
-			charsets: []string{"UTF-8"},
-			expected: []string{"UTF-8"},
+			"should exclude UTF-8",
+			"*, UTF-8;q=0",
+			[]string{"*"},
+			nil,
 		},
 		{
-			name:     "should return matching charsets",
-			header:   "*,UTF-8",
-			charsets: []string{"UTF-8", "ISO-8859-1"},
-			expected: []string{"UTF-8", "ISO-8859-1"},
+			"should return empty list",
+			"UTF-8;q=0",
+			[]string{},
+			nil,
 		},
 		{
-			name:     "should exclude charset with q=0",
-			header:   "*, UTF-8;q=0",
-			charsets: []string{"UTF-8", "ISO-8859-1"},
-			expected: []string{"ISO-8859-1"},
+			"should return client-preferred charsets",
+			"UTF-8;q=0.8, ISO-8859-1",
+			[]string{"ISO-8859-1", "UTF-8"},
+			nil,
 		},
 		{
-			name:     "should return empty list for single q=0 charset",
-			header:   "UTF-8;q=0",
-			charsets: []string{"UTF-8", "KOI8-R", "ISO-8859-1"},
-			expected: []string{},
+			"should return client-preferred charsets",
+			"ISO-8859-1",
+			[]string{"ISO-8859-1"},
+			nil,
 		},
 		{
-			name:     "should return matching charsets",
-			header:   "ISO-8859-1",
-			charsets: []string{"UTF-8", "ISO-8859-1"},
-			expected: []string{"ISO-8859-1"},
+			"should return client-preferred charsets",
+			"UTF-8, ISO-8859-1",
+			[]string{"UTF-8", "ISO-8859-1"},
+			nil,
 		},
 		{
-			name:     "should be case insensitive, returning provided casing in right order",
-			header:   "ISO-8859-1",
-			charsets: []string{"iso-8859-1", "ISO-8859-1"},
-			expected: []string{"iso-8859-1", "ISO-8859-1"},
+			"should return client-preferred charsets",
+			"UTF-8, ISO-8859-1;q=1",
+			[]string{"UTF-8", "ISO-8859-1"},
+			nil,
 		},
 		{
-			name:     "should return empty list when no matching charsets",
-			header:   "ISO-8859-1",
-			charsets: []string{"utf-8", "KOI8-R"},
-			expected: []string{},
+			"should return client-preferred charsets",
+			"UTF-8;q=0.9, ISO-8859-1;q=0.8, UTF-8;q=0.7",
+			[]string{"UTF-8", "ISO-8859-1"},
+			nil,
 		},
 		{
-			name:     "should return matching charsets in client-preferred order",
-			header:   "UTF-8;q=0.8, ISO-8859-1",
-			charsets: []string{"UTF-8", "KOI8-R", "ISO-8859-1"},
-			expected: []string{"ISO-8859-1", "UTF-8"},
+			"should return empty list for empty list",
+			"",
+			[]string{},
+			[]string{},
 		},
 		{
-			name:     "should return empty list when no matching charsets",
-			header:   "UTF-8;q=0.8, ISO-8859-1",
-			charsets: []string{"KOI8-R"},
-			expected: []string{},
+			"should return original list",
+			"",
+			[]string{"UTF-8", "ISO-8859-1"},
+			[]string{"UTF-8", "ISO-8859-1"},
 		},
 		{
-			name:     "should use highest preferred order on duplicate",
-			header:   "UTF-8;q=0.9, ISO-8859-1;q=0.8, UTF-8;q=0.7",
-			charsets: []string{"UTF-8", "ISO-8859-1"},
-			expected: []string{"UTF-8", "ISO-8859-1"},
+			"should return empty list for empty list",
+			"*",
+			[]string{},
+			[]string{},
+		},
+		{
+			"should return matching charsets",
+			"*, UTF-8",
+			[]string{"UTF-8", "ISO-8859-1"},
+			[]string{"UTF-8", "ISO-8859-1"},
+		},
+		{
+			"should exclude UTF-8",
+			"*, UTF-8;q=0",
+			[]string{"ISO-8859-1"},
+			[]string{"UTF-8", "ISO-8859-1"},
+		},
+		{
+			"should return empty list",
+			"UTF-8;q=0",
+			[]string{},
+			[]string{"UTF-8", "ISO-8859-1"},
+		},
+		{
+			"should return matching charsets",
+			"ISO-8859-1",
+			[]string{"ISO-8859-1"},
+			[]string{"UTF-8", "ISO-8859-1"},
+		},
+		{
+			"should be case insensitive, returning provided casing",
+			"UTF-8, ISO-8859-1",
+			[]string{"UTF-8", "ISO-8859-1"},
+			[]string{"utf-8", "iso-8859-1"},
+		},
+		{
+			"should return empty list when no matching charsets",
+			"ISO-8859-1",
+			[]string{},
+			[]string{"utf-8"},
+		},
+		{
+			"should return matching charsets",
+			"UTF-8, ISO-8859-1",
+			[]string{"UTF-8", "ISO-8859-1"},
+			[]string{"UTF-8", "KOI8-R", "ISO-8859-1"},
+		},
+		{
+			"should return empty list when no matching charsets",
+			"UTF-8, ISO-8859-1",
+			[]string{},
+			[]string{"KOI8-R"},
+		},
+		{
+			"should use highest preferred order on duplicate",
+			"UTF-8;q=0.9, ISO-8859-1;q=0.8, UTF-8;q=0.7",
+			[]string{"UTF-8", "ISO-8859-1"},
+			[]string{"ISO-8859-1", "UTF-8"},
 		},
 	}
 
-	for _, c := range casesWithArray {
-		t.Run(c.name, func(t *testing.T) {
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
 			req := httptest.NewRequest("GET", "/", nil)
-			req.Header.Set("Accept-Charset", c.header)
+			req.Header.Set("Accept-Charset", test.acceptCharset)
 
 			neg := negotiator.New(req)
-			actual := neg.ParseCharsets(c.charsets...)
-			if len(c.expected) >= 1 {
-				for i, v := range c.expected {
-					if v != actual[i] {
-						t.Errorf("Expected %s charset, got %s", c.expected[i], v)
+			var actual []string
+			if test.available == nil {
+				actual = neg.ParseCharsets()
+			} else {
+				actual = neg.ParseCharsets(test.available...)
+			}
+
+			if len(test.expected) >= 1 {
+				for i, v := range actual {
+					if v != test.expected[i] {
+						t.Errorf("Expected %s charset, got %s", test.expected[i], v)
 					}
 				}
 			} else {
-				if len(actual) != len(c.expected) {
-					t.Errorf("Expected %s charsets, got %s", c.expected, actual)
+				if len(actual) != len(test.expected) {
+					t.Errorf("Expected %d charsets, got %d", len(test.expected), len(actual))
 				}
 			}
 		})

@@ -1,7 +1,6 @@
 package negotiator
 
 import (
-	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -15,108 +14,85 @@ type Charset struct {
 
 // ParseCharsets parses the Accept-Charset header and returns a list of charsets
 // accepted by the client, sorted by priority.
+// See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Charset
 func (n *Negotiator) ParseCharsets(available ...string) []string {
 	acceptCharset := n.req.Header.Get("Accept-Charset")
-
-	fmt.Println("acceptCharset:", acceptCharset)
-	if acceptCharset == "" || len(available) == 0 || acceptCharset == "*" {
+	if acceptCharset == "" || acceptCharset == "*" {
+		if len(available) == 0 {
+			return []string{}
+		}
 		return available
 	}
 
 	parsedCharsets := splitCharsets(acceptCharset)
-	preferredCharsets := make([]Charset, 0)
-	fmt.Println("parsedCharsets:", parsedCharsets)
-	for _, charset := range parsedCharsets {
+	uniques := uniqueCharsets(parsedCharsets)
 
-		if idx, ok := isCharsetAccepted(charset, available); ok {
-			charset.Name = available[idx]
-			preferredCharsets = append(preferredCharsets, charset)
-		}
-	}
-
-	fmt.Println("preferredCharsets:", preferredCharsets)
-	sortCharsetsByPriority(preferredCharsets)
-
-	return getCharsets(preferredCharsets)
-}
-
-// splitCharsets splits the Accept-Charset header into individual charsets with quality values.
-func splitCharsets(acceptCharset string) []Charset {
-	charsets := strings.Split(acceptCharset, ",")
-
-	parsedCharsets := make([]Charset, 0)
-
-	for _, charsetStr := range charsets {
-		charset := parseCharset(charsetStr)
-		if charset != nil && charset.Quality > 0 {
-			parsedCharsets = append(parsedCharsets, *charset)
-		}
-	}
-
-	return parsedCharsets
-}
-
-// parseCharset parses a single charset string with its quality value from the Accept-Charset header.
-func parseCharset(charsetStr string) *Charset {
-	charsetParts := strings.SplitN(strings.TrimSpace(charsetStr), ";", 2)
-	if len(charsetParts) == 0 {
-		return nil
-	}
-
-	charsetName := strings.TrimSpace(charsetParts[0])
-
-	qValue := 1.0
-
-	if len(charsetParts) > 1 {
-		parameters := splitParameters(charsetParts[1])
-		for _, param := range parameters {
-			key, val := splitKeyValuePair(param)
-			if key == "q" {
-				q, err := strconv.ParseFloat(val, 64)
-				if err == nil {
-					qValue = q
+	if len(available) > 0 {
+		var filteredCharsets []Charset
+		for _, charset := range uniques {
+			for _, availCharset := range available {
+				if strings.EqualFold(charset.Name, availCharset) {
+					filteredCharsets = append(filteredCharsets, charset)
+					break
 				}
 			}
 		}
+		uniques = filteredCharsets
 	}
 
-	return &Charset{
-		Name:    charsetName,
-		Quality: qValue,
-	}
-}
+	sort.SliceStable(uniques, func(i, j int) bool {
+		return uniques[i].Quality > uniques[j].Quality
+	})
 
-// isCharsetAccepted checks if a charset is accepted by the client.
-func isCharsetAccepted(charset Charset, available []string) (int, bool) {
-	if len(available) == 0 {
-		return -1, true
-	}
-
-	for i, a := range available {
-		fmt.Printf("a: %s, charset.Name: %s\n", a, charset.Name)
-		if strings.EqualFold(a, charset.Name) {
-			return i, true
+	result := make([]string, 0, len(uniques))
+	for _, charset := range uniques {
+		if charset.Quality > 0 {
+			result = append(result, charset.Name)
 		}
 	}
 
-	return -1, false
+	return result
 }
 
-// sortCharsetsByPriority sorts the charsets by their priority (quality value).
-func sortCharsetsByPriority(charsets []Charset) {
-	sort.SliceStable(charsets, func(i, j int) bool {
-		return charsets[i].Quality > charsets[j].Quality
+// splitCharsets splits the Accept-Charset header into individual charsets with quality values.
+func splitCharsets(input string) []Charset {
+	rawCharsets := strings.Split(input, ",")
+	charsets := make([]Charset, 0, len(rawCharsets))
 
-	})
-}
-
-// getCharsets returns a list of charsets as strings.
-func getCharsets(charsets []Charset) []string {
-	result := make([]string, len(charsets))
-
-	for i, charset := range charsets {
-		result[i] = charset.Name
+	for _, rawCharset := range rawCharsets {
+		parts := strings.Split(strings.TrimSpace(rawCharset), ";q=")
+		charset := Charset{
+			Name:    strings.TrimSpace(parts[0]),
+			Quality: 1,
+		}
+		if len(parts) > 1 {
+			if quality, err := strconv.ParseFloat(parts[1], 64); err == nil {
+				charset.Quality = quality
+			}
+		}
+		charsets = append(charsets, charset)
 	}
 
-	return result
+	return charsets
+}
+
+// uniqueCharsets filters the given list of charsets to remove duplicates,
+// retaining the highest quality value for each charset name. it then returns
+// a new slice of Charset with unique charset names.
+func uniqueCharsets(charsets []Charset) []Charset {
+	charsetMap := map[string]Charset{}
+	for _, charset := range charsets {
+		lowerName := strings.ToLower(charset.Name)
+		existing, exists := charsetMap[lowerName]
+		if !exists || existing.Quality < charset.Quality {
+			charsetMap[lowerName] = charset
+		}
+	}
+
+	unique := make([]Charset, 0, len(charsetMap))
+	for _, charset := range charsetMap {
+		unique = append(unique, charset)
+	}
+
+	return unique
 }
