@@ -46,12 +46,6 @@ func TestNegotiator_ParseCharsets(t *testing.T) {
 		},
 		{
 			"should return client-preferred charsets",
-			"UTF-8;q=0.8, ISO-8859-1",
-			[]string{"ISO-8859-1", "UTF-8"},
-			nil,
-		},
-		{
-			"should return client-preferred charsets",
 			"ISO-8859-1",
 			[]string{"ISO-8859-1"},
 			nil,
@@ -64,7 +58,13 @@ func TestNegotiator_ParseCharsets(t *testing.T) {
 		},
 		{
 			"should return client-preferred charsets",
-			"UTF-8, ISO-8859-1;q=1",
+			"UTF-8;q=0.8, ISO-8859-1",
+			[]string{"ISO-8859-1", "UTF-8"},
+			nil,
+		},
+		{
+			"should return client-preferred charsets",
+			"UTF-8;foo=bar;q=1, ISO-8859-1;q=1",
 			[]string{"UTF-8", "ISO-8859-1"},
 			nil,
 		},
@@ -79,12 +79,6 @@ func TestNegotiator_ParseCharsets(t *testing.T) {
 			"",
 			[]string{},
 			[]string{},
-		},
-		{
-			"should return original list",
-			"",
-			[]string{"UTF-8", "ISO-8859-1"},
-			[]string{"UTF-8", "ISO-8859-1"},
 		},
 		{
 			"should return empty list for empty list",
@@ -105,7 +99,7 @@ func TestNegotiator_ParseCharsets(t *testing.T) {
 			[]string{"UTF-8", "ISO-8859-1"},
 		},
 		{
-			"should return empty list",
+			"should always return empty list",
 			"UTF-8;q=0",
 			[]string{},
 			[]string{"UTF-8", "ISO-8859-1"},
@@ -115,18 +109,6 @@ func TestNegotiator_ParseCharsets(t *testing.T) {
 			"ISO-8859-1",
 			[]string{"ISO-8859-1"},
 			[]string{"UTF-8", "ISO-8859-1"},
-		},
-		{
-			"should be case insensitive, returning provided casing",
-			"UTF-8, ISO-8859-1",
-			[]string{"UTF-8", "ISO-8859-1"},
-			[]string{"utf-8", "iso-8859-1"},
-		},
-		{
-			"should return empty list when no matching charsets",
-			"ISO-8859-1",
-			[]string{},
-			[]string{"utf-8"},
 		},
 		{
 			"should return matching charsets",
@@ -142,15 +124,27 @@ func TestNegotiator_ParseCharsets(t *testing.T) {
 		},
 		{
 			"should return empty list when no matching charsets",
-			"UTF-8, ISO-8859-1",
+			"ISO-8859-1",
 			[]string{},
-			[]string{"KOI8-R"},
+			[]string{"utf-8"},
 		},
 		{
 			"should use highest preferred order on duplicate",
 			"UTF-8;q=0.9, ISO-8859-1;q=0.8, UTF-8;q=0.7",
 			[]string{"UTF-8", "ISO-8859-1"},
 			[]string{"ISO-8859-1", "UTF-8"},
+		},
+		{
+			"should return original list",
+			"",
+			[]string{"UTF-8", "ISO-8859-1"},
+			[]string{"UTF-8", "ISO-8859-1"},
+		},
+		{
+			"should be case insensitive, returning provided casing",
+			"UTF-8, ISO-8859-1",
+			[]string{"UTF-8", "ISO-8859-1"},
+			[]string{"utf-8", "iso-8859-1"},
 		},
 	}
 

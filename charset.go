@@ -60,16 +60,20 @@ func splitCharsets(input string) []Charset {
 	charsets := make([]Charset, 0, len(rawCharsets))
 
 	for _, rawCharset := range rawCharsets {
-		parts := strings.Split(strings.TrimSpace(rawCharset), ";q=")
+		parts := strings.Split(strings.TrimSpace(rawCharset), ";")
 		charset := Charset{
 			Name:    strings.TrimSpace(parts[0]),
 			Quality: 1,
 		}
-		if len(parts) > 1 {
-			if quality, err := strconv.ParseFloat(parts[1], 64); err == nil {
-				charset.Quality = quality
+
+		for _, part := range parts[1:] {
+			if strings.HasPrefix(strings.TrimSpace(part), "q=") {
+				if quality, err := strconv.ParseFloat(strings.TrimSpace(part[2:]), 64); err == nil {
+					charset.Quality = quality
+				}
 			}
 		}
+
 		charsets = append(charsets, charset)
 	}
 
