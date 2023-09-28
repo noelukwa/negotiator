@@ -112,7 +112,7 @@ func TestNegotiator_ParseLanguage(t *testing.T) {
 			nil,
 		},
 		{
-		
+
 			"should use prefer fr over nl",
 			"nl;q=0.5, fr, de, en, it, es, pt, no, se, fi, ro",
 			[]string{"fr", "de", "en", "it", "es", "pt", "no", "se", "fi", "ro", "nl"},
@@ -139,7 +139,7 @@ func TestNegotiator_ParseLanguage(t *testing.T) {
 					if v != test.expected[i] {
 						t.Errorf("Expected %s Language , got %s", test.expected[i], v)
 					}
-					t.Logf("Expected %s Language , got %s", test.expected[i], v)
+					
 				}
 			} else {
 				if len(actual) != len(test.expected) {

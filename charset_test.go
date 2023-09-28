@@ -135,6 +135,12 @@ func TestNegotiator_ParseCharsets(t *testing.T) {
 			[]string{"UTF-8", "KOI8-R", "ISO-8859-1"},
 		},
 		{
+			"should return matching charsets in client-preferred order",
+			"UTF-8;q=0.8, ISO-8859-1",
+			[]string{"ISO-8859-1", "UTF-8"},
+			[]string{"UTF-8", "KOI8-R", "ISO-8859-1"},
+		},
+		{
 			"should return empty list when no matching charsets",
 			"UTF-8, ISO-8859-1",
 			[]string{},
@@ -163,13 +169,14 @@ func TestNegotiator_ParseCharsets(t *testing.T) {
 
 			if len(test.expected) >= 1 {
 				for i, v := range actual {
+					t.Log("actual", v, "expected", test.expected[i], "i", i, "total ex", len(test.expected), "total ac", len(actual), "actual", actual)
 					if v != test.expected[i] {
 						t.Errorf("Expected %s charset, got %s", test.expected[i], v)
 					}
 				}
 			} else {
 				if len(actual) != len(test.expected) {
-					t.Errorf("Expected %d charsets, got %d", len(test.expected), len(actual))
+					t.Errorf("Expected %s charsets, got %s", test.expected, actual)
 				}
 			}
 		})
